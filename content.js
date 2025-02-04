@@ -1,14 +1,12 @@
-// Gmail送信ボタンの監視
+// Gmail送信ボタンの監視（DOM変化に応じて動的にイベントリスナーを追加）
 function watchGmailSendButton() {
     const observer = new MutationObserver((mutations) => {
         const sendButtons = document.querySelectorAll('div[role="button"][data-tooltip*="送信"]');
-
         sendButtons.forEach(button => {
             if (!button.hasListener) {
                 button.hasListener = true;
-                // クリックイベントの代わりにmousedownイベントを使用
+                // mousedownとclickイベントの両方で送信処理をインターセプト
                 button.addEventListener('mousedown', interceptSend, true);
-                // 追加の保険としてclickイベントも監視
                 button.addEventListener('click', interceptSend, true);
             }
         });
@@ -22,27 +20,26 @@ function watchGmailSendButton() {
     });
 }
 
-// 送信をインターセプトする関数を更新
+// 送信処理をインターセプトする関数
 function interceptSend(event) {
-    // 即座にイベントをキャンセル
+    // 既定の送信動作を即座にキャンセル
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
 
-    // メールの情報を取得
+    // メール情報の取得
     const emailInfo = {
-        to: getRecipients(),
+        to: getRecipients(), // オブジェクト { to: [...], cc: [...], bcc: [...] }
         subject: getSubject(),
         body: getEmailBody()
     };
 
-    // 確認ポップアップを表示
+    // 確認ポップアップの表示
     showConfirmationPopup(emailInfo);
-
     return false;
 }
 
-// メール情報取得用の補助関数
+// メール情報（宛先、Cc、Bcc）の取得用関数
 function getRecipients() {
     const recipients = {
         to: [],
@@ -50,39 +47,69 @@ function getRecipients() {
         bcc: []
     };
 
-    // To フィールド
-    const toField = document.querySelector('div[aria-label="宛先"]');
+    // メール作成ダイアログを取得
+    const composerBox = document.querySelector('div[role="dialog"][aria-label*="メールを作成"]');
+    if (!composerBox) return recipients;
+
+    // Toフィールド
+    const toField = composerBox.querySelector('div[name="to"]');
     if (toField) {
-        recipients.to = Array.from(toField.querySelectorAll('span[email]'))
-            .map(span => span.getAttribute('email'));
+        const toOptions = toField.querySelectorAll('div[role="option"]');
+        recipients.to = Array.from(toOptions).map(option => {
+            const nameElement = option.querySelector('.akl');
+            const emailElement = option.querySelector('.akk');
+            if (nameElement && emailElement) {
+                const name = nameElement.textContent.trim();
+                const email = emailElement.textContent.trim().replace(/[（）]/g, '');
+                return `${name} <${email}>`;
+            }
+            return option.getAttribute('data-hovercard-id') || '';
+        }).filter(email => email);
     }
 
-    // Cc フィールド
-    const ccField = document.querySelector('div[aria-label="Cc"]');
+    // Ccフィールド
+    const ccField = composerBox.querySelector('div[name="cc"]');
     if (ccField) {
-        recipients.cc = Array.from(ccField.querySelectorAll('span[email]'))
-            .map(span => span.getAttribute('email'));
+        const ccOptions = ccField.querySelectorAll('div[role="option"]');
+        recipients.cc = Array.from(ccOptions).map(option => {
+            const nameElement = option.querySelector('.akl');
+            const emailElement = option.querySelector('.akk');
+            if (nameElement && emailElement) {
+                const name = nameElement.textContent.trim();
+                const email = emailElement.textContent.trim().replace(/[（）]/g, '');
+                return `${name} <${email}>`;
+            }
+            return option.getAttribute('data-hovercard-id') || '';
+        }).filter(email => email);
     }
 
-    // Bcc フィールド
-    const bccField = document.querySelector('div[aria-label="Bcc"]');
+    // Bccフィールド
+    const bccField = composerBox.querySelector('div[name="bcc"]');
     if (bccField) {
-        recipients.bcc = Array.from(bccField.querySelectorAll('span[email]'))
-            .map(span => span.getAttribute('email'));
+        const bccOptions = bccField.querySelectorAll('div[role="option"]');
+        recipients.bcc = Array.from(bccOptions).map(option => {
+            const nameElement = option.querySelector('.akl');
+            const emailElement = option.querySelector('.akk');
+            if (nameElement && emailElement) {
+                const name = nameElement.textContent.trim();
+                const email = emailElement.textContent.trim().replace(/[（）]/g, '');
+                return `${name} <${email}>`;
+            }
+            return option.getAttribute('data-hovercard-id') || '';
+        }).filter(email => email);
     }
 
-    return {
-        to: recipients.to.join(', '),
-        cc: recipients.cc.join(', '),
-        bcc: recipients.bcc.join(', ')
-    };
+    console.log('Recipients found:', recipients);
+    return recipients;
 }
 
+// 件名取得用関数
 function getSubject() {
     const subjectInput = document.querySelector('input[name="subjectbox"]');
     return subjectInput ? subjectInput.value : '（件名なし）';
 }
 
+// 本文取得用関数
 function getEmailBody() {
     const editorBody = document.querySelector('div[role="textbox"][aria-label*="本文"]');
     return editorBody ? editorBody.innerHTML : '';
@@ -96,16 +123,16 @@ function showConfirmationPopup(emailInfo) {
     <div class="popup-content">
       <h2>送信前確認</h2>
       <div class="email-info">
-        <p><strong>To:</strong> ${emailInfo.to.to || '（なし）'}</p>
-        ${emailInfo.to.cc ? `<p><strong>Cc:</strong> ${emailInfo.to.cc}</p>` : ''}
-        ${emailInfo.to.bcc ? `<p><strong>Bcc:</strong> ${emailInfo.to.bcc}</p>` : ''}
+        <p><strong>宛先:</strong> ${emailInfo.to.to?.length ? emailInfo.to.to.join(', ') : '（なし）'}</p>
+        ${emailInfo.to.cc?.length ? `<p><strong>Cc:</strong> ${emailInfo.to.cc.join(', ')}</p>` : ''}
+        ${emailInfo.to.bcc?.length ? `<p><strong>Bcc:</strong> ${emailInfo.to.bcc.join(', ')}</p>` : ''}
         <p><strong>件名:</strong> ${emailInfo.subject}</p>
         <p><strong>本文:</strong></p>
         <div class="email-body">${emailInfo.body}</div>
       </div>
       <div class="confirmation">
         <label>
-          <input type="checkbox" id="confirmCheck"> 
+          <input type="checkbox" id="confirmCheck">
           内容を確認しました
         </label>
       </div>
@@ -115,60 +142,61 @@ function showConfirmationPopup(emailInfo) {
       </div>
     </div>
   `;
-
     document.body.appendChild(popup);
 
-    // イベントリスナーの追加
+    // 各ボタンのイベント設定
     const confirmCheck = popup.querySelector('#confirmCheck');
     const confirmSendButton = popup.querySelector('#confirmSend');
     const cancelSendButton = popup.querySelector('#cancelSend');
 
+    // チェックボックスの変更で送信ボタンの有効化／無効化
     confirmCheck.addEventListener('change', (e) => {
         confirmSendButton.disabled = !e.target.checked;
     });
 
+    // キャンセル時はポップアップを閉じる
     cancelSendButton.addEventListener('click', () => {
         popup.remove();
     });
 
+    // 送信確定時の処理
     confirmSendButton.addEventListener('click', () => {
-        // 送信ボタンを無効化して二重送信を防止
+        // 送信ボタンの二重送信防止のため一時的に無効化
         confirmSendButton.disabled = true;
-        // ポップアップを閉じる
         popup.remove();
-        // 少し遅延してから送信を実行
+        // 少し遅延してから実際の送信を実行
         setTimeout(executeSend, 100);
     });
 }
 
-// 実際の送信を実行する関数を更新
+// 実際の送信処理を実行する関数
 function executeSend() {
     const sendButton = document.querySelector('div[role="button"][data-tooltip*="送信"]');
     if (sendButton) {
-        // 元のイベントリスナーを一時的に削除
+        // イベントリスナーを一旦削除
         sendButton.removeEventListener('mousedown', interceptSend, true);
         sendButton.removeEventListener('click', interceptSend, true);
 
-        // Gmail独自の送信処理をトリガー
+        // Gmail独自の送信処理をトリガーするためのイベントを生成
         const clickEvent = new MouseEvent('click', {
             bubbles: true,
             cancelable: true,
             view: window
         });
 
-        // mousedownとclickの両方のイベントを発火
+        // mousedownイベントの発火
         sendButton.dispatchEvent(new MouseEvent('mousedown', {
             bubbles: true,
             cancelable: true,
             view: window
         }));
 
-        // クリックイベントを少し遅延して発火
+        // 少し遅延してからclickイベントを発火
         setTimeout(() => {
             sendButton.dispatchEvent(clickEvent);
         }, 50);
 
-        // イベントリスナーを再追加
+        // 数百ミリ秒後に再度イベントリスナーを追加
         setTimeout(() => {
             sendButton.addEventListener('mousedown', interceptSend, true);
             sendButton.addEventListener('click', interceptSend, true);
@@ -176,26 +204,11 @@ function executeSend() {
     }
 }
 
-// キーボードショートカットの監視
-function watchKeyboardShortcuts() {
-    document.addEventListener('keydown', function (event) {
-        // Ctrl+Enter または Cmd+Enter (Mac)
-        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-            const composerBox = document.querySelector('div[role="dialog"][aria-label*="メールを作成"]');
-            if (composerBox) {
-                event.preventDefault();
-                event.stopPropagation();
-                interceptSend(event);
-            }
-        }
-    }, true);
-}
-
-// 初期化関数も更新
+// 初期化関数
 function initializeExtension() {
     console.log('Gmail Checker 初期化開始');
 
-    // 即時実行の追加
+    // 既存の送信ボタンに対してイベントリスナーを設定
     const sendButtons = document.querySelectorAll('div[role="button"][data-tooltip*="送信"]');
     sendButtons.forEach(button => {
         if (!button.hasListener) {
@@ -206,13 +219,12 @@ function initializeExtension() {
     });
 
     watchGmailSendButton();
-    watchKeyboardShortcuts();
 }
 
-// DOMContentLoadedの代わりにloadイベントを使用
+// ページのロード完了後に初期化
 window.addEventListener('load', initializeExtension);
 
-// 定期チェックも更新
+// 定期的に送信ボタンの監視を実施（動的に追加されたボタンへの対応）
 setInterval(() => {
     const sendButtons = document.querySelectorAll('div[role="button"][data-tooltip*="送信"]');
     sendButtons.forEach(button => {
@@ -222,4 +234,4 @@ setInterval(() => {
             button.addEventListener('click', interceptSend, true);
         }
     });
-}, 2000); 
+}, 2000);
