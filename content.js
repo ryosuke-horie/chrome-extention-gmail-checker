@@ -27,9 +27,8 @@ function interceptSend(event) {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
-    // メール情報の取得
+    // メール情報の取得（宛先取得処理は削除）
     const emailInfo = {
-        to: getRecipients(), // オブジェクト { to: [...], cc: [...], bcc: [...] }
         subject: getSubject(),
         body: getEmailBody()
     };
@@ -37,70 +36,6 @@ function interceptSend(event) {
     // 確認ポップアップの表示
     showConfirmationPopup(emailInfo);
     return false;
-}
-
-// メール情報（宛先、Cc、Bcc）の取得用関数
-function getRecipients() {
-    const recipients = {
-        to: [],
-        cc: [],
-        bcc: []
-    };
-
-    // メール作成ダイアログを取得
-    const composerBox = document.querySelector('div[role="dialog"][aria-label*="メールを作成"]');
-    if (!composerBox) return recipients;
-
-    // Toフィールド
-    const toField = composerBox.querySelector('div[name="to"]');
-    if (toField) {
-        const toOptions = toField.querySelectorAll('div[role="option"]');
-        recipients.to = Array.from(toOptions).map(option => {
-            const nameElement = option.querySelector('.akl');
-            const emailElement = option.querySelector('.akk');
-            if (nameElement && emailElement) {
-                const name = nameElement.textContent.trim();
-                const email = emailElement.textContent.trim().replace(/[（）]/g, '');
-                return `${name} <${email}>`;
-            }
-            return option.getAttribute('data-hovercard-id') || '';
-        }).filter(email => email);
-    }
-
-    // Ccフィールド
-    const ccField = composerBox.querySelector('div[name="cc"]');
-    if (ccField) {
-        const ccOptions = ccField.querySelectorAll('div[role="option"]');
-        recipients.cc = Array.from(ccOptions).map(option => {
-            const nameElement = option.querySelector('.akl');
-            const emailElement = option.querySelector('.akk');
-            if (nameElement && emailElement) {
-                const name = nameElement.textContent.trim();
-                const email = emailElement.textContent.trim().replace(/[（）]/g, '');
-                return `${name} <${email}>`;
-            }
-            return option.getAttribute('data-hovercard-id') || '';
-        }).filter(email => email);
-    }
-
-    // Bccフィールド
-    const bccField = composerBox.querySelector('div[name="bcc"]');
-    if (bccField) {
-        const bccOptions = bccField.querySelectorAll('div[role="option"]');
-        recipients.bcc = Array.from(bccOptions).map(option => {
-            const nameElement = option.querySelector('.akl');
-            const emailElement = option.querySelector('.akk');
-            if (nameElement && emailElement) {
-                const name = nameElement.textContent.trim();
-                const email = emailElement.textContent.trim().replace(/[（）]/g, '');
-                return `${name} <${email}>`;
-            }
-            return option.getAttribute('data-hovercard-id') || '';
-        }).filter(email => email);
-    }
-
-    console.log('Recipients found:', recipients);
-    return recipients;
 }
 
 // 件名取得用関数
@@ -123,9 +58,6 @@ function showConfirmationPopup(emailInfo) {
     <div class="popup-content">
       <h2>送信前確認</h2>
       <div class="email-info">
-        <p><strong>宛先:</strong> ${emailInfo.to.to?.length ? emailInfo.to.to.join(', ') : '（なし）'}</p>
-        ${emailInfo.to.cc?.length ? `<p><strong>Cc:</strong> ${emailInfo.to.cc.join(', ')}</p>` : ''}
-        ${emailInfo.to.bcc?.length ? `<p><strong>Bcc:</strong> ${emailInfo.to.bcc.join(', ')}</p>` : ''}
         <p><strong>件名:</strong> ${emailInfo.subject}</p>
         <p><strong>本文:</strong></p>
         <div class="email-body">${emailInfo.body}</div>
