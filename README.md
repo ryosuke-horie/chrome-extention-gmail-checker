@@ -33,3 +33,7 @@ Gmail送信前の確認ポップアップ拡張機能サンプルです。
 - Chrome Extension Manifest V3
 - JavaScript
 - HTML/CSS
+
+## 動作イメージ
+
+![スクリーンショット](./screenshot.png)
