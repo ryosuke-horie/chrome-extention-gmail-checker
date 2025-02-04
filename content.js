@@ -1,7 +1,7 @@
 // Gmail送信ボタンの監視
 function watchGmailSendButton() {
     const observer = new MutationObserver((mutations) => {
-        const sendButtons = document.querySelectorAll('[role="button"][data-tooltip-text*="送信"]');
+        const sendButtons = document.querySelectorAll('div[role="button"][data-tooltip*="送信"]');
 
         sendButtons.forEach(button => {
             if (!button.hasListener) {
@@ -13,7 +13,9 @@ function watchGmailSendButton() {
 
     observer.observe(document.body, {
         childList: true,
-        subtree: true
+        subtree: true,
+        attributes: true, // 属性の変更も監視
+        attributeFilter: ['role', 'data-tooltip'] // 特定の属性のみ監視
     });
 }
 
@@ -130,7 +132,7 @@ function showConfirmationPopup(emailInfo) {
 
 // 実際の送信を実行する関数
 function executeSend() {
-    const sendButton = document.querySelector('[role="button"][data-tooltip-text*="送信"]');
+    const sendButton = document.querySelector('div[role="button"][data-tooltip*="送信"]');
     if (sendButton) {
         // イベントリスナーを一時的に削除
         sendButton.removeEventListener('click', interceptSend);
@@ -160,9 +162,33 @@ function watchKeyboardShortcuts() {
 
 // 拡張機能の初期化を更新
 function initializeExtension() {
+    console.log('Gmail Checker 初期化開始'); // デバッグ用
+
+    // 即時実行の追加
+    const sendButtons = document.querySelectorAll('div[role="button"][data-tooltip*="送信"]');
+    sendButtons.forEach(button => {
+        if (!button.hasListener) {
+            button.hasListener = true;
+            button.addEventListener('click', interceptSend);
+            console.log('初期化時に送信ボタンを検出しリスナーを追加'); // デバッグ用
+        }
+    });
+
     watchGmailSendButton();
     watchKeyboardShortcuts();
 }
 
-// DOMContentLoadedイベントリスナーを更新
-document.addEventListener('DOMContentLoaded', initializeExtension); 
+// DOMContentLoadedの代わりにloadイベントを使用
+window.addEventListener('load', initializeExtension);
+
+// 定期的なチェックも追加
+setInterval(() => {
+    const sendButtons = document.querySelectorAll('div[role="button"][data-tooltip*="送信"]');
+    sendButtons.forEach(button => {
+        if (!button.hasListener) {
+            button.hasListener = true;
+            button.addEventListener('click', interceptSend);
+            console.log('定期チェックで送信ボタンを検出しリスナーを追加'); // デバッグ用
+        }
+    });
+}, 2000); 

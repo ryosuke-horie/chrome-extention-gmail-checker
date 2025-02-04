@@ -5,10 +5,12 @@
   "description": "Gmail送信前の確認ポップアップ拡張機能",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
-    "https://mail.google.com/*"
+    "https://mail.google.com/*",
+    "https://www.mail.google.com/*"
   ],
   "action": {
     "default_icon": {
@@ -19,9 +21,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://mail.google.com/*"],
+      "matches": [
+        "https://mail.google.com/*",
+        "https://www.mail.google.com/*"
+      ],
       "js": ["content.js"],
-      "css": ["styles.css"]
+      "css": ["styles.css"],
+      "run_at": "document_end"
     }
   ]
 } 
