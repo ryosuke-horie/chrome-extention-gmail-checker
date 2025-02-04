@@ -132,8 +132,12 @@ function showConfirmationPopup(emailInfo) {
     });
 
     confirmSendButton.addEventListener('click', () => {
+        // 送信ボタンを無効化して二重送信を防止
+        confirmSendButton.disabled = true;
+        // ポップアップを閉じる
         popup.remove();
-        executeSend();
+        // 少し遅延してから送信を実行
+        setTimeout(executeSend, 100);
     });
 }
 
@@ -146,18 +150,29 @@ function executeSend() {
         sendButton.removeEventListener('click', interceptSend, true);
 
         // Gmail独自の送信処理をトリガー
-        const mouseEvent = new MouseEvent('mousedown', {
+        const clickEvent = new MouseEvent('click', {
             bubbles: true,
             cancelable: true,
             view: window
         });
-        sendButton.dispatchEvent(mouseEvent);
 
-        // 少し遅延してイベントリスナーを再追加
+        // mousedownとclickの両方のイベントを発火
+        sendButton.dispatchEvent(new MouseEvent('mousedown', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+        }));
+
+        // クリックイベントを少し遅延して発火
+        setTimeout(() => {
+            sendButton.dispatchEvent(clickEvent);
+        }, 50);
+
+        // イベントリスナーを再追加
         setTimeout(() => {
             sendButton.addEventListener('mousedown', interceptSend, true);
             sendButton.addEventListener('click', interceptSend, true);
-        }, 100);
+        }, 500);
     }
 }
 
