@@ -31,14 +31,32 @@ function replaceSendButton() {
     // 送信処理のインターセプト：クリック時にポップアップを表示
     confirmButton.addEventListener('click', (event) => {
         event.preventDefault();
-        // メール情報の取得（各要素が正しく取得できるかは実際のDOMに合わせて調整）
+
+        const recipients = getRecipients();
         const emailInfo = {
+            to: recipients.to,
+            cc: recipients.cc,
+            bcc: recipients.bcc,
             subject: getSubject(),
-            body: getEmailBody(),
+            body: getEmailBody()
         };
-        showConfirmationPopup(emailInfo, () => {
-            // ユーザが確認して送信を確定した場合、元の送信処理を実行
-            executeSend(sendButton);
+
+        // 確認ダイアログの内容を作成
+        const dialogContent = `
+            <div style="margin-bottom: 15px;">
+                <strong>以下の内容で送信してよろしいですか？</strong>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <div><strong>宛先:</strong> ${emailInfo.to.join(', ') || '(なし)'}</div>
+                <div><strong>CC:</strong> ${emailInfo.cc.join(', ') || '(なし)'}</div>
+                <div><strong>BCC:</strong> ${emailInfo.bcc.join(', ') || '(なし)'}</div>
+                <div><strong>件名:</strong> ${emailInfo.subject}</div>
+            </div>
+        `;
+
+        // モーダルダイアログを表示
+        showConfirmDialog(dialogContent, () => {
+            sendButton.click(); // OKクリック時は元の送信ボタンをクリック
         });
     });
 
@@ -47,16 +65,59 @@ function replaceSendButton() {
 }
 
 
+// メールの宛先情報を取得する関数
+function getRecipients() {
+    const recipients = {
+        to: [],
+        cc: [],
+        bcc: []
+    };
+
+    // 新しいGmailのPeopleKit UIを使用している場合
+    const peopleKitUI = document.querySelector('div[name=to] input[peoplekit-id]');
+
+    if (peopleKitUI) {
+        // To
+        document.querySelectorAll('div[name=to] div[data-hovercard-id]').forEach(el => {
+            recipients.to.push(el.getAttribute('data-hovercard-id'));
+        });
+        // CC
+        document.querySelectorAll('div[name=cc] div[data-hovercard-id]').forEach(el => {
+            recipients.cc.push(el.getAttribute('data-hovercard-id'));
+        });
+        // BCC
+        document.querySelectorAll('div[name=bcc] div[data-hovercard-id]').forEach(el => {
+            recipients.bcc.push(el.getAttribute('data-hovercard-id'));
+        });
+    } else {
+        // 従来のGmail UI
+        // To
+        document.querySelectorAll('input[name="to"]').forEach(el => {
+            recipients.to.push(el.value);
+        });
+        // CC
+        document.querySelectorAll('input[name="cc"]').forEach(el => {
+            recipients.cc.push(el.value);
+        });
+        // BCC
+        document.querySelectorAll('input[name="bcc"]').forEach(el => {
+            recipients.bcc.push(el.value);
+        });
+    }
+
+    return recipients;
+}
+
 // 件名取得用関数
 function getSubject() {
-    const subjectInput = document.querySelector('input[name="subjectbox"]');
-    return subjectInput ? subjectInput.value : '（件名なし）';
+    return document.querySelector('input[name="subjectbox"]')?.value ||
+        document.querySelector('input[name="subject"]')?.value ||
+        '(件名なし)';
 }
 
 // 本文取得用関数
 function getEmailBody() {
-    const editorBody = document.querySelector('div[role="textbox"][aria-label*="本文"]');
-    return editorBody ? editorBody.innerHTML : '';
+    return document.querySelector('div[contenteditable="true"]:not([id="subject"])')?.innerHTML || '';
 }
 
 // 確認ポップアップを表示する関数
@@ -161,3 +222,91 @@ function initializeExtension() {
 
 // ページのロード完了後に初期化
 window.addEventListener('load', initializeExtension);
+
+// モーダルダイアログを表示する関数
+function showConfirmDialog(content, onOk) {
+    // モーダルの背景を作成
+    const modalBackground = document.createElement('div');
+    modalBackground.className = 'gmail-modal-background';
+    modalBackground.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+    `;
+
+    // モーダルウィンドウを作成
+    const modalWindow = document.createElement('div');
+    modalWindow.className = 'gmail-modal-window';
+    modalWindow.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        min-width: 300px;
+        max-width: 600px;
+    `;
+
+    // コンテンツを追加
+    const contentDiv = document.createElement('div');
+    contentDiv.innerHTML = content;
+    contentDiv.style.marginBottom = '20px';
+
+    // ボタンコンテナ
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    `;
+
+    // OKボタン
+    const okButton = document.createElement('button');
+    okButton.textContent = 'OK';
+    okButton.style.cssText = `
+        padding: 8px 16px;
+        background: #1a73e8;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    `;
+
+    // キャンセルボタン
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'キャンセル';
+    cancelButton.style.cssText = `
+        padding: 8px 16px;
+        background: #f1f3f4;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    `;
+
+    // イベントリスナーを追加
+    okButton.addEventListener('click', () => {
+        document.body.removeChild(modalBackground);
+        if (onOk) onOk();
+    });
+
+    cancelButton.addEventListener('click', () => {
+        document.body.removeChild(modalBackground);
+    });
+
+    // 要素を組み立て
+    buttonContainer.appendChild(cancelButton);
+    buttonContainer.appendChild(okButton);
+    modalWindow.appendChild(contentDiv);
+    modalWindow.appendChild(buttonContainer);
+    modalBackground.appendChild(modalWindow);
+
+    // DOMに追加
+    document.body.appendChild(modalBackground);
+}
