@@ -117,7 +117,7 @@ function getSubject() {
 
 // 本文取得用関数
 function getEmailBody() {
-    return document.querySelector('div[contenteditable="true"]:not([id="subject"])')?.innerHTML || '';
+    return document.querySelector('[contenteditable="true"]')?.innerHTML || '';
 }
 
 // 確認ポップアップを表示する関数
@@ -251,7 +251,9 @@ function showConfirmDialog(content, onOk) {
         border-radius: 8px;
         z-index: 10000;
         min-width: 300px;
-        max-width: 600px;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
     `;
 
     // コンテンツを追加
@@ -259,12 +261,26 @@ function showConfirmDialog(content, onOk) {
     contentDiv.innerHTML = content;
     contentDiv.style.marginBottom = '20px';
 
+    // 本文表示エリアを追加
+    const bodyDiv = document.createElement('div');
+    bodyDiv.style.cssText = `
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        background: #f8f9fa;
+    `;
+    bodyDiv.innerHTML = getEmailBody();
+
     // ボタンコンテナ
     const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText = `
         display: flex;
         justify-content: flex-end;
         gap: 10px;
+        margin-top: 20px;
     `;
 
     // OKボタン
@@ -304,6 +320,7 @@ function showConfirmDialog(content, onOk) {
     buttonContainer.appendChild(cancelButton);
     buttonContainer.appendChild(okButton);
     modalWindow.appendChild(contentDiv);
+    modalWindow.appendChild(bodyDiv);
     modalWindow.appendChild(buttonContainer);
     modalBackground.appendChild(modalWindow);
 
