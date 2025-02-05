@@ -1,63 +1,63 @@
 .gmail-checker-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 9999;
 }
 
 .popup-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 80%;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
+	background: white;
+	padding: 20px;
+	border-radius: 8px;
+	width: 80%;
+	max-width: 600px;
+	max-height: 80vh;
+	overflow-y: auto;
 }
 
 .email-info {
-  margin: 15px 0;
+	margin: 15px 0;
 }
 
 .email-body {
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-  padding: 10px;
-  margin: 10px 0;
+	max-height: 200px;
+	overflow-y: auto;
+	border: 1px solid #ccc;
+	padding: 10px;
+	margin: 10px 0;
 }
 
 .buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+	margin-top: 20px;
 }
 
 .buttons button {
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
+	padding: 8px 16px;
+	border-radius: 4px;
+	cursor: pointer;
 }
 
 #confirmSend {
-  background: #1a73e8;
-  color: white;
-  border: none;
+	background: #1a73e8;
+	color: white;
+	border: none;
 }
 
 #confirmSend:disabled {
-  background: #ccc;
-  cursor: not-allowed;
+	background: #ccc;
+	cursor: not-allowed;
 }
 
 #cancelSend {
-  background: white;
-  border: 1px solid #ccc;
-} 
+	background: white;
+	border: 1px solid #ccc;
+}
